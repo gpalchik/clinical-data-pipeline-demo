@@ -223,3 +223,8 @@ __marimo__/
 # Data
 data/
 warehouse.duckdb
+
+# Scratch
+scratch.py
+
+*.duckdb
