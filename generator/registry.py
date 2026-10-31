@@ -12,7 +12,7 @@ EVENT_TYPES = ["Infection", "Rejection", "Bleeding", "Stroke", "Readmission"]
 
 def make_registry(people, ehr, seed=SEED):
     rng = random.Random(seed)
-    # Registry covers about 85% of people, so some are missing on purpose later
+    # Registry covers about 85% of people, so some are missing on purpose
     subset = people.sample(frac=0.85, random_state=seed)
     ehr_dates = ehr.set_index("_person_id")["procedure_date"].to_dict()
     rows = []
@@ -39,6 +39,24 @@ def make_registry(people, ehr, seed=SEED):
     return pd.DataFrame(rows)
 
 
+def plant_registry_problems(reg, seed=SEED):
+    rng = random.Random(seed + 1)
+    reg = reg.copy()
+    idx = rng.sample(range(len(reg)), 12)
+
+    # Problem: DOB differs from the EHR by one day (6 rows)
+    for i in idx[:6]:
+        d = pd.Timestamp(reg.at[i, "dob"]) + pd.Timedelta(days=rng.choice([-1, 1]))
+        reg.at[i, "dob"] = d.strftime("%Y-%m-%d")
+
+    # Problem: misspelled last name, one letter dropped (6 rows)
+    for i in idx[6:]:
+        first, last = reg.at[i, "name"].split(" ", 1)
+        pos = rng.randint(0, len(last) - 1)
+        reg.at[i, "name"] = first + " " + last[:pos] + last[pos + 1:]
+    return reg
+
+
 if __name__ == "__main__":
     from ehr import make_ehr
 
@@ -48,5 +66,8 @@ if __name__ == "__main__":
     ehr = make_ehr(people)
     reg = make_registry(people, ehr)
     reg.to_csv(out / "registry_clean.csv", index=False)
-    print(reg.head())
-    print(len(reg), "registry rows written")
+    dirty = plant_registry_problems(reg)
+    dirty.to_csv(out / "registry_dirty.csv", index=False)
+    print(len(reg), "clean rows,", len(dirty), "dirty rows written")
+    changed = dirty[(dirty["dob"] != reg["dob"]) | (dirty["name"] != reg["name"])]
+    print(len(changed), "rows changed")
