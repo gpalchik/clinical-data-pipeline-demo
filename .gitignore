@@ -228,3 +228,6 @@ warehouse.duckdb
 scratch.py
 
 *.duckdb
+
+target/
+logs/

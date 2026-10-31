@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: ehr_extract
+      - name: registry_extract
+      - name: survey_export
